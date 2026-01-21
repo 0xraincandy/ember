@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+$LOAD_PATH.unshift('/usr/lib/ember')
+require 'ember'
+
+cmd = ARGV.shift
+
+begin
+  case cmd
+  when nil
+    Ember.update_system
+    Ember.update_aur
+  when 'ins'
+    pkg = ARGV.shift or abort("Usage: emb ins <package>")
+    Ember.install(pkg)
+  when 'rm'
+    pkg = ARGV.shift or abort("Usage: emb rm <package>")
+    Ember.remove(pkg)
+  when 'search'
+    query = ARGV.shift or abort("Usage: emb search <query>")
+    Ember.search(query)
+  else
+    abort("Unknown command: #{cmd}")
+  end
+rescue Interrupt
+  puts "\n==> Aborted by user."
+  exit 130
+end
