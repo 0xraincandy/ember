@@ -18,7 +18,7 @@ begin
     pkg = ARGV.shift or abort("Usage: emb rm <package>")
     Ember.remove(pkg)
   when 'search'
-    query = ARGV.shift or abort("Usage: emb search <query>")
+    query = ARGV.shift or abort("Usage: emb search <package>")
     Ember.search(query)
   else
     abort("Unknown command: #{cmd}")
