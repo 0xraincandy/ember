@@ -1,35 +1,20 @@
 # frozen_string_literal: true
 
-require 'io/console'
 require 'fileutils'
 require 'json'
 
 module Ember
-    HOME_DIR = ENV['HOME']
-    TMPDIR = "#{HOME_DIR}/.ember/tmp"
+    HOME_TMPDIR = File.expand_path("~/.ember/tmp")
+    FileUtils.mkdir_p(HOME_TMPDIR)
 
     # ----------------- UI -----------------
-    # Simple Y/N prompt
+    # Simple Y/N prompt without live updates
     def self.prompt_yn(msg, default: true)
         default_char = default ? 'Y' : 'N'
-        other_char   = default ? 'n' : 'y'
-        loop do
-            print "#{msg} [#{default_char}/#{other_char}] "
-            STDOUT.flush
-            ans = STDIN.gets.chomp
-            if ans.empty?
-                return default
-            elsif ans =~ /^[Yy]$/
-                    return true
-            elsif ans =~ /^[Nn]$/
-                    return false
-            elsif ans == "\u0003" # Ctrl-C
-                puts "\n==> Aborted by user."
-                exit 130
-            else
-                puts "Please enter Y or N."
-            end
-        end
+        print "#{msg} [#{default_char}/#{default ? 'n' : 'y'}] "
+        ans = STDIN.gets.chomp
+        return default if ans.empty?
+        ans.strip.downcase.start_with?('y')
     end
 
     def self.run(cmd)
@@ -60,11 +45,6 @@ module Ember
     end
 
     # ----------------- Actions -----------------
-    def self.update
-        update_system
-        update_aur
-    end
-
     def self.update_system
         puts "Updating system packages..."
         run("sudo pacman -Syu")
@@ -86,7 +66,22 @@ module Ember
         end
     end
 
+    # ----------------- Install -----------------
     def self.install(pkg)
+        if `pacman -Q #{pkg} 2>/dev/null`.empty?
+            # Not installed
+            if aur_version(pkg)
+                install_aur(pkg)
+            else
+                puts "[ember] Installing #{pkg} from repositories..."
+                run("sudo pacman -S --noconfirm #{pkg}")
+            end
+        else
+            puts "[ember] #{pkg} is already up to date. Skipping."
+        end
+    end
+
+    def self.install_aur(pkg)
         aur_ver = aur_version(pkg)
         if installed_version(pkg) == aur_ver
             puts "[ember] #{pkg} is already up to date. Skipping."
@@ -99,43 +94,45 @@ module Ember
 
         return unless prompt_yn("Proceed with installing #{pkg}?", default: true)
 
-        FileUtils.mkdir_p(TMPDIR)
-        Dir.chdir(TMPDIR) do
+        tmp_pkg_dir = File.join(HOME_TMPDIR, pkg)
+        FileUtils.rm_rf(tmp_pkg_dir) # cleanup if exists
+        FileUtils.mkdir_p(tmp_pkg_dir)
+
+        Dir.chdir(tmp_pkg_dir) do
+            puts "[ember] Installing #{pkg} from AUR..."
             begin
-                puts "[ember] Installing #{pkg} from AUR..."
-                run("git clone https://aur.archlinux.org/#{pkg}.git")
-                Dir.chdir(pkg) { run("makepkg -si") }
+                run("git clone https://aur.archlinux.org/#{pkg}.git .")
+                run("makepkg -si")
             rescue SystemExit, Interrupt
-                puts "[ember] Installation canceled by user."
-                FileUtils.rm_rf("#{TMPDIR}/#{pkg}")
+                puts "==> Aborted by user! Cleaning up..."
+                FileUtils.rm_rf(tmp_pkg_dir)
                 exit 130
-            ensure
-                FileUtils.rm_rf("#{TMPDIR}/#{pkg}") if Dir.exist?("#{TMPDIR}/#{pkg}")
             end
         end
 
+        FileUtils.rm_rf(tmp_pkg_dir)
+
+        # Remove unused make dependencies
         if prompt_yn("Remove make dependencies?", default: true)
-            puts "[ember] Removing unused make dependencies..."
-            run("sudo pacman -Rns --asdeps $(pacman -Qtdq) 2>/dev/null || true")
+            puts "Removing unused make dependencies..."
+            system("sudo pacman -Rns --asdeps $(pacman -Qtdq) 2>/dev/null || true")
         end
     end
 
+    # ----------------- Remove -----------------
     def self.remove(pkg)
-        puts "Removing #{pkg}..."
-        run("sudo pacman -R #{pkg}")
-    rescue
-        puts "[ember] Failed to remove #{pkg}"
+        puts "[ember] Removing #{pkg}..."
+        system("sudo pacman -R #{pkg}") || puts("Failed to remove #{pkg}")
     end
 
+    # ----------------- Search -----------------
     def self.search(query)
-        puts "Searching AUR for '#{query}'..."
+        puts "[ember] Searching AUR for '#{query}'..."
         results = JSON.parse(`curl -fsL "https://aur.archlinux.org/rpc/?v=5&type=search&arg=#{query}"`)['results']
         if results.empty?
-            puts "No results found."
+            puts "[ember] No results found."
         else
-            results.each do |r|
-                puts "#{r['Name']} (#{r['Version']}) - #{r['Description']}"
-            end
+            results.each { |r| puts "#{r['Name']} (#{r['Version']}) - #{r['Description']}" }
         end
     end
 end
