@@ -3,12 +3,11 @@ pkgname=ember
 pkgver=1.0
 pkgrel=1
 pkgdesc="Ember — a minimal AUR helper written in Ruby"
-arch=('x86_64')
+arch=('x86_64' 'aarch64')
+url="https://github.com/0xraincandy/ember"
 license=('GPL')
-
 depends=('ruby' 'curl' 'git')
 makedepends=('base-devel')
-
 source=()
 sha256sums=()
 

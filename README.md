@@ -1,4 +1,3 @@
-[![AUR](https://img.shields.io/aur/version/syca?logo=arch-linux&label=AUR&cacheSeconds=5)](https://aur.archlinux.org/packages/syca)
 [![License](https://img.shields.io/badge/license-GPLv3-brightgreen)]()
 [![Language](https://img.shields.io/badge/language-Ruby-red)]()
 
