@@ -1,3 +1,7 @@
+[![AUR](https://img.shields.io/aur/version/syca?logo=arch-linux&label=AUR&cacheSeconds=5)](https://aur.archlinux.org/packages/syca)
+[![License](https://img.shields.io/badge/license-GPLv3-brightgreen)]()
+[![Language](https://img.shields.io/badge/language-Ruby-red)]()
+
 # Ember
 
 **Ember** is a minimal AUR helper written in Ruby. It allows you to easily install, update, search, and remove AUR packages with a simple command-line interface.
@@ -51,3 +55,4 @@ Ember uses a temporary folder to clone and build AUR packages:
 ~/.ember/tmp/
 ```
 This folder is automatically cleaned after installation
+
