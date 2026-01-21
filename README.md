@@ -1,3 +1,4 @@
+[![AUR](https://img.shields.io/aur/version/ember?logo=arch-linux&label=AUR&cacheSeconds=5)]([https://aur.archlinux.org/packages/syca](https://aur.archlinux.org/packages/ember))
 [![License](https://img.shields.io/badge/license-GPLv3-brightgreen)]()
 [![Language](https://img.shields.io/badge/language-Ruby-red)]()
 
@@ -54,4 +55,5 @@ Ember uses a temporary folder to clone and build AUR packages:
 ~/.ember/tmp/
 ```
 This folder is automatically cleaned after installation
+
 
