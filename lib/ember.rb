@@ -7,8 +7,6 @@ module Ember
     HOME_TMPDIR = File.expand_path("~/.ember/tmp")
     FileUtils.mkdir_p(HOME_TMPDIR)
 
-    # ----------------- UI -----------------
-    # Simple Y/N prompt without live updates
     def self.prompt_yn(msg, default: true)
         default_char = default ? 'Y' : 'N'
         print "#{msg} [#{default_char}/#{default ? 'n' : 'y'}] "
@@ -21,7 +19,6 @@ module Ember
         system(cmd) || abort("Failed: #{cmd}")
     end
 
-    # ----------------- Package Info -----------------
     def self.installed_version(pkg)
         out = `pacman -Qi #{pkg} 2>/dev/null`
         out[/^Version\s*:\s*(.+)$/, 1]
@@ -44,7 +41,7 @@ module Ember
         $?.exitstatus != 0
     end
 
-    # ----------------- Actions -----------------
+
     def self.update_system
         puts "Updating system packages..."
         run("sudo pacman -Syu")
@@ -66,15 +63,15 @@ module Ember
         end
     end
 
-    # ----------------- Install -----------------
+
     def self.install(pkg)
         if `pacman -Q #{pkg} 2>/dev/null`.empty?
-            # Not installed
+
             if aur_version(pkg)
                 install_aur(pkg)
             else
                 puts "[ember] Installing #{pkg} from repositories..."
-                run("sudo pacman -S --noconfirm #{pkg}")
+                run("sudo pacman -S #{pkg}")
             end
         else
             puts "[ember] #{pkg} is already up to date. Skipping."
@@ -95,7 +92,7 @@ module Ember
         return unless prompt_yn("Proceed with installing #{pkg}?", default: true)
 
         tmp_pkg_dir = File.join(HOME_TMPDIR, pkg)
-        FileUtils.rm_rf(tmp_pkg_dir) # cleanup if exists
+        FileUtils.rm_rf(tmp_pkg_dir)
         FileUtils.mkdir_p(tmp_pkg_dir)
 
         Dir.chdir(tmp_pkg_dir) do
@@ -112,20 +109,20 @@ module Ember
 
         FileUtils.rm_rf(tmp_pkg_dir)
 
-        # Remove unused make dependencies
+
         if prompt_yn("Remove make dependencies?", default: true)
             puts "Removing unused make dependencies..."
             system("sudo pacman -Rns --asdeps $(pacman -Qtdq) 2>/dev/null || true")
         end
     end
 
-    # ----------------- Remove -----------------
+
     def self.remove(pkg)
         puts "[ember] Removing #{pkg}..."
         system("sudo pacman -R #{pkg}") || puts("Failed to remove #{pkg}")
     end
 
-    # ----------------- Search -----------------
+
     def self.search(query)
         puts "[ember] Searching AUR for '#{query}'..."
         results = JSON.parse(`curl -fsL "https://aur.archlinux.org/rpc/?v=5&type=search&arg=#{query}"`)['results']
