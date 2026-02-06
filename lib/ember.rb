@@ -15,6 +15,10 @@ module Ember
         ans.strip.downcase.start_with?('y')
     end
 
+    def self.repo_package?(pkg)
+        system("pacman -Si #{pkg} >/dev/null 2>&1")
+    end
+
     def self.run(cmd)
         system(cmd) || abort("Failed: #{cmd}")
     end

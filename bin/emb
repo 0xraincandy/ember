@@ -11,18 +11,46 @@ begin
   when nil
     Ember.update_system
     Ember.update_aur
+
   when 'ins'
-    pkg = ARGV.shift or abort("Usage: emb ins <package>")
-    Ember.install(pkg)
+    pkgs = ARGV
+    abort("Usage: emb ins <package>") if pkgs.empty?
+
+    repo_pkgs = []
+    aur_pkgs  = []
+
+    pkgs.each do |pkg|
+      if Ember.repo_package?(pkg)
+        repo_pkgs << pkg
+      else
+        aur_pkgs << pkg
+      end
+    end
+
+    # Repo packages: one pacman transaction
+    unless repo_pkgs.empty?
+      puts "[ember] Installing repo packages: #{repo_pkgs.join(' ')}"
+      Ember.run("sudo pacman -S #{repo_pkgs.join(' ')}")
+    end
+
+    # AUR packages: one by one
+    aur_pkgs.each do |pkg|
+      Ember.install(pkg)
+    end
+
   when 'rm'
-    pkg = ARGV.shift or abort("Usage: emb rm <package>")
-    Ember.remove(pkg)
+    pkgs = ARGV
+    abort("Usage: emb rm <package>") if pkgs.empty?
+    Ember.run("sudo pacman -R #{pkgs.join(' ')}")
+
   when 'search'
     query = ARGV.shift or abort("Usage: emb search <package>")
     Ember.search(query)
+
   else
     abort("Unknown command: #{cmd}")
   end
+
 rescue Interrupt
   puts "\n==> Aborted by user."
   exit 130

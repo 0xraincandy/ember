@@ -7,7 +7,7 @@ arch=('x86_64' 'aarch64')
 url="https://github.com/0xraincandy/ember"
 license=('GPL')
 depends=('ruby' 'curl' 'git')
-makedepends=('base-devel')
+makedepends=()
 source=()
 sha256sums=()
 
