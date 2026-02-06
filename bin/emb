@@ -27,13 +27,11 @@ begin
       end
     end
 
-    # Repo packages: one pacman transaction
     unless repo_pkgs.empty?
       puts "[ember] Installing repo packages: #{repo_pkgs.join(' ')}"
       Ember.run("sudo pacman -S #{repo_pkgs.join(' ')}")
     end
 
-    # AUR packages: one by one
     aur_pkgs.each do |pkg|
       Ember.install(pkg)
     end
