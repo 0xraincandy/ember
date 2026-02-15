@@ -8,7 +8,7 @@
 
 ## Installation
 
-To install **Ember** locally via the PKGBUILD:
+install **Ember** via the PKGBUILD:
 
 
 
@@ -19,7 +19,7 @@ cd ember/
 makepkg -si
 ```
 
-This will build and install the emb command system-wide.
+This will build and install Ember
 
 
 ## Usage
@@ -55,6 +55,7 @@ Ember uses a temporary folder to clone and build AUR packages:
 ~/.ember/tmp/
 ```
 This folder is automatically cleaned after installation
+
 
 
 
