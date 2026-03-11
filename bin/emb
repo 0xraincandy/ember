@@ -7,46 +7,53 @@ require 'ember'
 cmd = ARGV.shift
 
 begin
+
   case cmd
+
   when nil
     Ember.update_system
     Ember.update_aur
 
   when 'ins'
+
     pkgs = ARGV
     abort("Usage: emb ins <package>") if pkgs.empty?
 
-    repo_pkgs = []
-    aur_pkgs  = []
+    repo = []
+    aur  = []
 
     pkgs.each do |pkg|
       if Ember.repo_package?(pkg)
-        repo_pkgs << pkg
+        repo << pkg
       else
-        aur_pkgs << pkg
+        aur << pkg
       end
     end
 
-    unless repo_pkgs.empty?
-      puts "[ember] Installing repo packages: #{repo_pkgs.join(' ')}"
-      Ember.run("sudo pacman -S #{repo_pkgs.join(' ')}")
+    unless repo.empty?
+      puts "[ember] Installing repo packages: #{repo.join(' ')}"
+      Ember.run("sudo pacman -S #{repo.join(' ')}")
     end
 
-    aur_pkgs.each do |pkg|
+    aur.each do |pkg|
       Ember.install(pkg)
     end
 
   when 'rm'
+
     pkgs = ARGV
     abort("Usage: emb rm <package>") if pkgs.empty?
+
     Ember.run("sudo pacman -R #{pkgs.join(' ')}")
 
   when 'search'
-    query = ARGV.shift or abort("Usage: emb search <package>")
+
+    query = ARGV.shift or abort("Usage: emb search <query>")
     Ember.search(query)
 
   else
     abort("Unknown command: #{cmd}")
+
   end
 
 rescue Interrupt
