@@ -11,6 +11,7 @@ begin
   case cmd
 
   when nil
+
     Ember.update_system
     Ember.update_aur
 
@@ -35,9 +36,7 @@ begin
       Ember.run("sudo pacman -S #{repo.join(' ')}")
     end
 
-    aur.each do |pkg|
-      Ember.install(pkg)
-    end
+    Ember.install_aur_batch(aur) unless aur.empty?
 
   when 'rm'
 
@@ -52,6 +51,7 @@ begin
     Ember.search(query)
 
   else
+
     abort("Unknown command: #{cmd}")
 
   end
