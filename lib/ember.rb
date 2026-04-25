@@ -43,8 +43,9 @@ module Ember
     end
 
     def self.installed_version(pkg)
-        out = `pacman -Qi #{pkg} 2>/dev/null`
-        out[/^Version\s*:\s*(.+)$/, 1]
+        out = `pacman -Q #{pkg} 2>/dev/null`
+        return nil if out.empty?
+        out.split[1]
     end
 
     # -----------------------------
@@ -64,12 +65,9 @@ module Ember
     end
 
     def self.aur_exists?(pkg)
-
         url = "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]=#{pkg}"
         json = JSON.parse(`curl -fsL "#{url}"`)
-
         json["resultcount"].to_i > 0
-
     rescue
         false
     end
@@ -88,14 +86,21 @@ module Ember
         installed = {}
         pkgs.each { |p| installed[p] = installed_version(p) }
 
-        aur = fetch_aur_versions(pkgs)
+        aur = {}
+        pkgs.each_slice(50) { |slice| aur.merge!(fetch_aur_versions(slice)) }
 
         updates = []
 
         pkgs.each do |pkg|
+
+            if pkg.end_with?('-git', '-svn', '-hg')
+                updates << pkg
+                next
+            end
+
             next unless aur[pkg] && installed[pkg]
 
-            cmp = `vercmp #{aur[pkg]} #{installed[pkg]}`.strip.to_i
+            cmp = `vercmp "#{aur[pkg]}" "#{installed[pkg]}"`.strip.to_i
             updates << pkg if cmp == 1
         end
 
@@ -106,8 +111,7 @@ module Ember
 
         puts "[ember] Checking AUR updates..."
 
-        foreign = foreign_packages
-        updates = find_aur_updates(foreign)
+        updates = find_aur_updates(foreign_packages)
 
         if updates.empty?
             puts "All AUR packages up to date."
@@ -119,7 +123,7 @@ module Ember
             puts "  #{p} #{installed_version(p)} -> new"
         end
 
-        install_aur_batch(updates)
+        install_aur_batch(updates, force: true)
     end
 
     # -----------------------------
@@ -127,54 +131,38 @@ module Ember
     # -----------------------------
 
     def self.search(query)
-
         puts "[ember] Searching AUR for '#{query}'..."
 
         json = JSON.parse(`curl -fsL "https://aur.archlinux.org/rpc/?v=5&type=search&arg=#{query}"`)
 
-        results = json['results']
-
-        if results.empty?
-            puts "No results."
-            return
-        end
-
-        results.each do |r|
+        json['results'].each do |r|
             puts "#{r['Name']} (#{r['Version']}) - #{r['Description']}"
         end
     end
 
     # -----------------------------
-    # DEPENDENCY PARSER
+    # DEPENDENCIES
     # -----------------------------
 
     def self.clean_dep(dep)
-        dep = dep.gsub(/['"]/, '')
-        dep = dep.split(':').first
-        dep = dep.split(/[<>=]/).first
-        dep.strip
+        dep.gsub(/['"]/, '').split(':').first.split(/[<>=]/).first.strip
     end
 
     def self.aur_dependencies(pkg)
 
-        url = "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=#{pkg}"
-        content = `curl -fsL "#{url}"`
+        content = `curl -fsL "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=#{pkg}"`
 
         deps = []
-
         content.scan(/depends=\((.*?)\)/m) { |m| deps += m[0].split }
         content.scan(/makedepends=\((.*?)\)/m) { |m| deps += m[0].split }
 
-        deps.map { |d| clean_dep(d) }
-        .reject(&:empty?)
-        .uniq
-
+        deps.map { |d| clean_dep(d) }.uniq
     rescue
         []
     end
 
     # -----------------------------
-    # INSTALL LOGIC
+    # INSTALL
     # -----------------------------
 
     def self.install(pkg)
@@ -185,19 +173,17 @@ module Ember
         end
 
         if repo_package?(pkg)
-            puts "[ember] Installing #{pkg} from repos..."
             run("sudo pacman -S #{pkg} --needed")
         else
             install_aur_batch([pkg])
         end
-
     end
 
     # -----------------------------
-    # BATCH AUR INSTALL
+    # BATCH INSTALL
     # -----------------------------
 
-    def self.install_aur_batch(pkgs)
+    def self.install_aur_batch(pkgs, force: false)
 
         return if pkgs.empty?
 
@@ -205,46 +191,36 @@ module Ember
         pkgs.each { |p| puts "  #{p}" }
         puts
 
-        if prompt_yn("Review PKGBUILDs?", default: false)
-            pkgs.each do |pkg|
-                system("curl -fsL https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=#{pkg} | less")
-            end
-        end
-
         return unless prompt_yn("Install all AUR packages?", default: true)
 
         pkgs.each do |pkg|
-            install_aur(pkg)
+            install_aur(pkg, force: force)
         end
 
         if prompt_yn("Remove orphaned dependencies?", default: true)
             system("sudo pacman -Rns $(pacman -Qtdq) 2>/dev/null || true")
         end
-
     end
 
     # -----------------------------
     # AUR INSTALL
     # -----------------------------
 
-    def self.install_aur(pkg)
+    def self.install_aur(pkg, force: false)
 
         unless aur_exists?(pkg)
             puts "[ember] ERROR: #{pkg} not found in AUR."
             return
         end
 
-        return if installed?(pkg)
+        return if installed?(pkg) && !force
         return if @building.include?(pkg)
 
         @building << pkg
 
         puts "[ember] Resolving dependencies for #{pkg}..."
 
-        deps = aur_dependencies(pkg)
-
-        deps.each do |dep|
-
+        aur_dependencies(pkg).each do |dep|
             next if installed?(dep)
 
             if repo_package?(dep)
@@ -252,25 +228,19 @@ module Ember
             else
                 install_aur(dep)
             end
-
         end
 
         tmp = File.join(HOME_TMPDIR, pkg)
-
         FileUtils.rm_rf(tmp)
         FileUtils.mkdir_p(tmp)
 
         Dir.chdir(tmp) do
-
             puts "[ember] Building #{pkg}..."
-
             run("git clone https://aur.archlinux.org/#{pkg}.git .")
             run("makepkg -si --noconfirm")
-
         end
 
         FileUtils.rm_rf(tmp)
-
     end
 
 end
