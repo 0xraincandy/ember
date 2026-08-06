@@ -1,4 +1,4 @@
-# Maintainer: Remilia Litjens
+# Maintainer: Lesley Litjens
 pkgname=ember
 pkgver=1.1
 pkgrel=3
