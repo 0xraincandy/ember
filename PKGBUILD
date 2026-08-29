@@ -1,10 +1,10 @@
-# Maintainer: Lesley Litjens
+# Maintainer: Rachel Litjens
 pkgname=ember
 pkgver=1.1
 pkgrel=3
 pkgdesc="Ember — a minimal AUR helper written in Ruby"
 arch=('x86_64' 'aarch64')
-url="https://github.com/0xraincandy/ember"
+url="https://github.com/xkikiyaa/ember"
 license=('GPL')
 depends=('ruby' 'curl' 'git')
 makedepends=()
